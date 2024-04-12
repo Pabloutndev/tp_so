@@ -12,7 +12,13 @@ int main(int argc, char* argv[]) {
 
 	// No hardcodear IP y puerto, leer de config
     
-	int conexion = crear_socket(logger,CLIENTE,IP_GENERICA,"4444");
+	int conexion_fd = crear_socket(logger,CLIENTE,IP_GENERICA,PUERTO_CPU);
+	if(handshake_client(logger,conexion_fd) == -1){
+		log_error(logger,"Error en el handshake con el servidor");
+		return 1;
+	}
+
+	close(conexion_fd);
 
 	//free_config_cpu(&config);
 	log_info(logger,"CPU Finalizada.");

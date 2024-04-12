@@ -29,6 +29,11 @@ enum T_SOCKET{
   CLIENTE = 1
 };
 
+//  ---------  HANDSHAKE ---------
+
+int handshake_serv(t_log *logger,int fd_conexion);
+int handshake_client(t_log *logger,int fd_conexion);
+
 //  ---------  SOCKETS ---------
 
 int crear_socket(t_log *logger, enum T_SOCKET tipo, char* ip, char* puerto);
