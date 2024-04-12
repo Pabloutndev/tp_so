@@ -3,6 +3,7 @@
 		"debug.onTaskErrors": "abort",
 		"files.associations": {
 			"*.h": "c",
+			"cstdlib": "c"
 		},
 		"C_Cpp.errorSquiggles": "disabled",
 	},

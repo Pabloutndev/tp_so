@@ -51,8 +51,16 @@ typedef struct
     int block_count;
 } config_io;
 
-
 // CONFIGURACION DEL KERNEL
 config_kernel kernel_cargar_config(char* ruta);
+
+// CONFIGURACION DEL CPU
+config_cpu cpu_cargar_config(char* ruta);
+
+// CONFIGURACION DEL MEMORIA
+config_memoria memoria_cargar_config(char* ruta);
+
+// CONFIGURACION DEL INTERFAZ_IO
+config_io interfaz_cargar_config(char* ruta);
 
 #endif /*CONFIGS_H_*/
