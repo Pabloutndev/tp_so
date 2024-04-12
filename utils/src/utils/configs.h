@@ -19,6 +19,38 @@ typedef struct
     char** instancias_recursos;
     int grado_multiprogramacion;
 } config_kernel;
+typedef struct
+{
+    char* ip_memoria;
+    char* puerto_memoria;
+    char* puerto_dispatch;
+    char* puerto_interrupt;
+    int tlb_cant_ent;
+    char* tlb_algoritmo;
+} config_cpu;
+
+typedef struct
+{
+    char* puerto_escucha;
+    int tam_memoria;
+    int tam_pagina;
+    char* path_instrucciones;
+    int retardo_respuesta;
+} config_memoria;
+
+typedef struct
+{
+    char* tipo_interfaz;
+    int tiempo_unidad_trabajo;
+    char* ip_kernel;
+    char* port_kernel;
+    char* ip_memoria;
+    char* puerto_memoria;
+    char** path_base_dialfs;
+    int block_size;
+    int block_count;
+} config_io;
+
 
 // CONFIGURACION DEL KERNEL
 config_kernel kernel_cargar_config(char* ruta);
