@@ -14,14 +14,22 @@ int main(int argc, char* argv[]) {
 	// No hardcodear IP y puerto, leer de config
     
 	int conexion_fd = crear_socket(logger,CLIENTE,IP_GENERICA,PUERTO_CPU);
+	log_info(logger,"Enviamos un HOLA CPU!");
+	send_string(conexion_fd, "HOLA CPU!");
+	//send_string(conexion_fd, "Segundo saludo");
+
+	int server_fd = crear_socket(logger,SERVER,IP_GENERICA,PUERTO_KERNEL);
+	log_info(logger, "Servidor listo para recibir al cliente");
+	//int cliente_fd = esperar_cliente(logger,server_fd); // ESTO FUNCIONA
+	while(server_detach(logger,"KERNEL",server_fd));
+
+	
 	/*
 	if(handshake_client(logger,conexion_fd) == -1){
 		log_error(logger,"Error en el handshake con el servidor");
 		return 1;
 	}*/
-
-	send_string(conexion_fd, "HOLA CPU, COMO ESTAS?");
-	//send_string(conexion_fd, "Segundo saludo");
+	
 
 	log_info(logger,"Modulo Kernel Finalizado.");
 

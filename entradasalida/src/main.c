@@ -11,11 +11,15 @@ int main(int argc, char* argv[]) {
 
 	log_info(logger,"LOG INTERFAZ \n");
     
-	int conexion_fd = crear_socket(logger,CLIENTE,IP_GENERICA,PUERTO_MEMORIA);
-	if(handshake_client(logger,conexion_fd) == -1){
+	int conexion_fd = crear_socket(logger,CLIENTE,IP_GENERICA,PUERTO_KERNEL);
+	log_info(logger,"Enviamos un HOLA KERNEL! \n");
+	send_string(conexion_fd, "HOLA KERNEL!");
+	log_info(logger,"Fin de la charla con KERNEL.");
+
+	/*if(handshake_client(logger,conexion_fd) == -1){
 		log_error(logger,"Error en el handshake con el servidor");
 		return 1;
-	}
+	}*/
 
 	close(conexion_fd);
 
