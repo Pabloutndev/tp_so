@@ -11,28 +11,19 @@ int main(int argc, char* argv[]) {
 	
 	log_info(logger,"CPU Iniciado! \n");
 
-	// Conexión SOCKET cliente IP:PUERTO_MEMORIA
-	int conexion_fd = crear_socket(logger,CLIENTE,IP_GENERICA,PUERTO_MEMORIA);
+	int conexion_fd = crear_socket(logger,CLIENTE,config.ip_memoria,config.puerto_memoria);
 	log_info(logger,"Enviamos un HOLA MEMORIA! \n");
 	send_string(conexion_fd, "HOLA MEMORIA!");
 	log_info(logger,"Fin de la charla con memoria.");
 
-	// Creamos una conexión SOCKET SERVIDOR IP:PUERTO_CPU
-	int server_fd = crear_socket(logger,SERVER,IP_GENERICA,PUERTO_CPU);
-	log_info(logger, "Servidor listo para recibir al cliente");
-	//int cliente_fd = esperar_cliente(logger,server_fd); // ESTO FUNCIONA
+	int server_fd = crear_socket(logger,SERVER,IP_GENERICA,config.puerto_dispatch);
+	log_info(logger, "Servidor CPU listo para recibir clientes");
+
 	while(server_detach(logger,"CPU",server_fd));
 	
-	/*if (handshake_serv(logger, cliente_fd) == -1) {
-        log_error(logger,"Error en el handshake con el cliente\n");
-        exit(1);
-    }*/
-	
-	log_info(logger,"CPU Finalizada.");
+	log_info(logger,"El modulo CPU Finalizo.");
 
 	close(server_fd);
-
-	//liberar_config_cpu(&config);
 	log_destroy(logger);
 
     return 0;

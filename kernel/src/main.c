@@ -9,32 +9,20 @@ int main(int argc, char* argv[]) {
 	
 	config = kernel_cargar_config("kernel.config");
 
-	log_info(logger,"LOG KERNEL %s\n",config.ip_cpu);
+	log_info(logger,"LOG KERNEL \n");
 
-	// No hardcodear IP y puerto, leer de config
-    
-	int conexion_fd = crear_socket(logger,CLIENTE,IP_GENERICA,PUERTO_CPU);
-	log_info(logger,"Enviamos un HOLA CPU!");
+	int conexion_fd = crear_socket(logger,CLIENTE,config.ip_cpu,config.puerto_cpu_dispatch);
+	log_info(logger,"Enviamos un HOLA a CPU!");
 	send_string(conexion_fd, "HOLA CPU!");
-	//send_string(conexion_fd, "Segundo saludo");
 
-	int server_fd = crear_socket(logger,SERVER,IP_GENERICA,PUERTO_KERNEL);
-	log_info(logger, "Servidor listo para recibir al cliente");
-	//int cliente_fd = esperar_cliente(logger,server_fd); // ESTO FUNCIONA
+	int server_fd = crear_socket(logger,SERVER,IP_GENERICA,config.puerto_escucha);
+	log_info(logger, "Servidor KERNEL listo para recibir clientes");
+
 	while(server_detach(logger,"KERNEL",server_fd));
-
-	
-	/*
-	if(handshake_client(logger,conexion_fd) == -1){
-		log_error(logger,"Error en el handshake con el servidor");
-		return 1;
-	}*/
-	
 
 	log_info(logger,"Modulo Kernel Finalizado.");
 
 	close(conexion_fd);
-	//free_config_cpu(&config);
 	log_destroy(logger);
 	
 	return 0;

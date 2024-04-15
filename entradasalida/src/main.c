@@ -5,26 +5,26 @@
 
 int main(int argc, char* argv[]) {
 	config_io config;
-	t_log* logger = iniciar_logger("memoria.log","MEMORIA");
+	t_log* logger = iniciar_logger("entradasalida.log","entradasalida");
 	
 	config = interfaz_cargar_config("entradasalida.config");
 
-	log_info(logger,"LOG INTERFAZ \n");
+	log_info(logger,"LOG INTERFAZ I/O \n");
     
-	int conexion_fd = crear_socket(logger,CLIENTE,IP_GENERICA,PUERTO_KERNEL);
+	int con_kr_fd = crear_socket(logger,CLIENTE,IP_GENERICA,config.puerto_kernel);
 	log_info(logger,"Enviamos un HOLA KERNEL! \n");
-	send_string(conexion_fd, "HOLA KERNEL!");
-	log_info(logger,"Fin de la charla con KERNEL.");
+	send_string(con_kr_fd, "HOLA KERNEL!");
+	log_info(logger,"Fin de la charla con KERNEL.\n");
 
-	/*if(handshake_client(logger,conexion_fd) == -1){
-		log_error(logger,"Error en el handshake con el servidor");
-		return 1;
-	}*/
+	int con_mem_fd = crear_socket(logger,CLIENTE,IP_GENERICA,config.puerto_memoria);
+	log_info(logger,"Enviamos un HOLA MEMORIA! \n");
+	send_string(con_mem_fd, "HOLA MEMORIA!");
+	log_info(logger,"Fin de la charla con MEMORIA.\n");
 
-	close(conexion_fd);
-
-	//libera_config_io(&config);
 	log_info(logger,"Modulo Interfaz finalizado.");
+
+	close(con_kr_fd);
+	close(con_mem_fd);
 	log_destroy(logger);
 	
 	return 0;

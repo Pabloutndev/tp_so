@@ -11,23 +11,14 @@ int main(int argc, char* argv[]) {
 	
 	log_info(logger,"### LOG MEMORIA ### \n");
 
-    // Creamos una conexión SOCKET SERVIDOR IP:PUERTO_MEMORIA
-	int server_fd = crear_socket(logger,SERVER,IP_GENERICA,PUERTO_MEMORIA);
-	log_info(logger, "Servidor %s listo para recibir al cliente","MEMORIA");
-	//int cliente_fd = esperar_cliente_threads(logger,server_fd);
-	//int cliente_fd = esperar_cliente(logger,server_fd);
+	int server_fd = crear_socket(logger,SERVER,IP_GENERICA,config.puerto_escucha);
+	log_info(logger, "Servidor %s listo para recibir al cliente\n","MEMORIA");
 	while(server_detach(logger,"MEMORIA",server_fd));
 	
-	/*if (handshake_serv(logger, cliente_fd) == -1) {
-        log_error(logger,"Error en el handshake con el cliente\n");
-        exit(1);
-    }*/
-
-	log_info(logger,"Modulo memoria finalizado.");
+	log_info(logger,"Modulo memoria finalizado.\n");
 	
 	close(server_fd);
 
-	//libera_config_memoria(&config);
 	log_destroy(logger);
 	
 	return 0;

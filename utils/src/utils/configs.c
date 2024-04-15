@@ -82,7 +82,7 @@ config_io interfaz_cargar_config(char* ruta)
     interfaz.tipo_interfaz          = config_get_string_value(config_archivo,"TIPO_INTERFAZ");
     interfaz.tiempo_unidad_trabajo  = config_get_int_value(config_archivo,"TIEMPO_UNIDAD_TRABAJO");
     interfaz.ip_kernel              = config_get_string_value(config_archivo,"IP_KERNEL");
-    interfaz.port_kernel            = config_get_string_value(config_archivo,"PUERTO_KERNEL");
+    interfaz.puerto_kernel          = config_get_string_value(config_archivo,"PUERTO_KERNEL");
     interfaz.ip_memoria             = config_get_string_value(config_archivo,"IP_MEMORIA");
     interfaz.puerto_memoria         = config_get_string_value(config_archivo,"PUERTO_MEMORIA");
     interfaz.path_base_dialfs       = config_get_array_value(config_archivo,"PATH_BASE_DIALFS");
