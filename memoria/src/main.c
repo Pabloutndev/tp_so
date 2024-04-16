@@ -6,7 +6,7 @@
 int main(int argc, char* argv[]) {
 	config_memoria config;
 	t_log* logger = iniciar_logger("memoria.log","memoria");
-
+	
 	config = memoria_cargar_config("memoria.config");
 	
 	log_info(logger,"### LOG MEMORIA ### \n");
@@ -16,8 +16,8 @@ int main(int argc, char* argv[]) {
 	while(server_detach(logger,"MEMORIA",server_fd));
 	
 	log_info(logger,"Modulo memoria finalizado.\n");
-	
-	close(server_fd);
+
+	close(server_fd); 
 
 	log_destroy(logger);
 	

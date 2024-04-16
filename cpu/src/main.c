@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
 	log_info(logger,"Enviamos un HOLA MEMORIA! \n");
 	send_string(conexion_fd, "HOLA MEMORIA!");
 	log_info(logger,"Fin de la charla con memoria.");
-
+	
 	int server_fd = crear_socket(logger,SERVER,IP_GENERICA,config.puerto_dispatch);
 	log_info(logger, "Servidor CPU listo para recibir clientes");
 

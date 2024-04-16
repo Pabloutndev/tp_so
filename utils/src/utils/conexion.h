@@ -17,6 +17,7 @@
 #define PUERTO_IO "8009"
 
 #define IP_GENERICA "127.0.0.1"
+
 typedef struct {
     t_log* log;
     int fd;
@@ -26,7 +27,7 @@ typedef struct {
 // Mensajes (codigo de operacion)
 // Se requiere para saber que enviar/recibir
 typedef enum {
-    //ERROR=-1,
+    ERROR=-1,
     MENSAJE,
     HANDSHAKE,
     //DEBUG,
@@ -40,12 +41,7 @@ enum T_SOCKET{
 //  --------- THREADS - HILOS ---------
 
 int server_detach(t_log* logger, char* server_name, int socket_servidor);
-static void procesar_conexion(void* void_args);
-
-// ESTO ESTA PARA ELIMINAR
-void handshake_serv1(int fd_conexion);
-int esperar_cliente_threads(t_log* logger, int socket_servidor);
-
+void procesar_conexion(void* void_args);
 
 //  ---------  OPERACIONES ---------
 
@@ -59,8 +55,8 @@ int handshake_client(t_log *logger,int fd_conexion);
 
 //  ---------  SERIALIZACION ---------
 
-static void* serializar_string(size_t* size, char* string);
-static void deserializar_string(void* stream, char** string);
+void* serializar_string(size_t* size, char* string);
+void deserializar_string(void* stream, char** string);
 
 //  ---------  SOCKETS ---------
 

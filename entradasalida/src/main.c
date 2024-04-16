@@ -10,7 +10,7 @@ int main(int argc, char* argv[]) {
 	config = interfaz_cargar_config("entradasalida.config");
 
 	log_info(logger,"LOG INTERFAZ I/O \n");
-    
+	
 	int con_kr_fd = crear_socket(logger,CLIENTE,IP_GENERICA,config.puerto_kernel);
 	log_info(logger,"Enviamos un HOLA KERNEL! \n");
 	send_string(con_kr_fd, "HOLA KERNEL!");

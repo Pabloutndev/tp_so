@@ -1,10 +1,11 @@
 #include <utils/conexion.h>
 
+
 // ##################
 //  THREADS - HILOS
 // ##################
 
-static void procesar_conexion(void* void_args)
+void procesar_conexion(void* void_args)
 {
     t_procesar_conexion_args* args = (t_procesar_conexion_args*) void_args;
     t_log* logger = args->log;
@@ -22,13 +23,13 @@ static void procesar_conexion(void* void_args)
 
         switch(cop)
         {
-            case DEBUG: 
+            /*case DEBUG: 
                 log_info(logger,"debug");
                 break;
-            /*case HANDSHAKE: 
+            case HANDSHAKE: 
                 log_info(logger,"HANDSHAKE PERFECTO!");
                 break;
-                /*uint8_t dato;
+                uint8_t dato;
                 if(!recv_handshake(cliente_socket,&dato)) {
                     log_error(logger, "Fallo HANDSHAKE de %s",server_name);
                     break;
@@ -113,7 +114,7 @@ int recv_string(int fd_conexion, char** string)
 }
 
 // ### SERIALIZACION 
-static void* serializar_string(size_t* size, char* string)
+void* serializar_string(size_t* size, char* string)
 {
     size_t size_string = strlen(string) + 1;
 
@@ -138,7 +139,7 @@ static void* serializar_string(size_t* size, char* string)
 
 // ### DESERIALIZACION 
 
-static void deserializar_string(void* stream, char** string)
+void deserializar_string(void* stream, char** string)
 {
     // Recibo tamanio de la cadena
     size_t size_string; 
@@ -176,6 +177,12 @@ int handshake_client(t_log *logger,int fd_conexion)
     } else {
         log_info(logger,"Handshake ERROR");
     }
+    
+    if(bytes!=sizeof(int32_t)){
+        return -1;
+    }
+    
+    return 0;
 }
 
 int handshake_serv(t_log *logger,int fd_conexion)
@@ -192,6 +199,12 @@ int handshake_serv(t_log *logger,int fd_conexion)
     } else {
         bytes = send(fd_conexion, &resultError, sizeof(int32_t), 0);
     }
+
+    if(bytes!=sizeof(int32_t)){
+        return -1;
+    }
+    
+    return 0;
 }
 
 // ### SOCKETS (SERVER & CLIENTE)
@@ -211,9 +224,9 @@ int crear_socket(t_log *logger, enum T_SOCKET tipo, char* ip, char* puerto)
 
     if(err == -1 ){
         if(tipo == SERVER) {
-            printf(logger, "Error al crear socket server");
+            log_info(logger, "Error al crear socket server");
         } else if(tipo == CLIENTE) {
-            printf(logger, "Error al crear socket cliente");
+            log_info(logger, "Error al crear socket cliente");
         }
         return 0;
     }
@@ -250,7 +263,7 @@ int esperar_cliente(t_log* logger, char* nombre, int socket_servidor)
     socklen_t tam_direccion = sizeof(struct sockaddr_in);
     int socket_cliente = accept(socket_servidor, (void*)&dir_cliente, &tam_direccion);
     if(socket_cliente == -1) {
-        printf(logger, "Error al aceptar cliente");
+        log_info(logger, "Error al aceptar cliente");
         return -1;
     }
 

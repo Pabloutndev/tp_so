@@ -94,7 +94,7 @@ config_io interfaz_cargar_config(char* ruta)
     return interfaz;
 }
 
-/* 
+/*  
     ## COMENTARIOS ##
     path = "../kernel.config" en VSC O ECLIPSE
     path = "kernel.config" uso de make
