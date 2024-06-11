@@ -77,6 +77,8 @@ void handleConnection(void* client_socket_ptr)
 		case PCKT_START_PROCESS:
 			iniciar_proceso(client_socket);
 			break;
+		case PCKT_FINISH_PROCESS:
+			finalizar_proceso(client_socket);
 		case -1:
 			printf("se cerro la conexion / error\n");
 			//disconnected = 1;
