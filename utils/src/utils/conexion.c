@@ -1,6 +1,7 @@
 #include <utils/conexion.h>
 
 
+
 // ##################
 //  THREADS - HILOS
 // ##################
@@ -79,6 +80,12 @@ int server_detach(t_log* logger, char* server_name, int socket_servidor)
     return 0;
 }
 
+void liberar_conexion(int socket_cliente)
+{
+	close(socket_cliente);
+}
+
+
 // ### OPERACIONES
 
 int send_string(int fd_conexion, char* string)
@@ -151,8 +158,6 @@ void deserializar_string(void* stream, char** string)
     *string = string_tam;
 }
 
-
-
 // ### HANDSHAKE
 
 int handshake_client(t_log *logger,int fd_conexion)
@@ -178,7 +183,8 @@ int handshake_client(t_log *logger,int fd_conexion)
         log_info(logger,"Handshake ERROR");
     }
     
-    if(bytes!=sizeof(int32_t)){
+    if(bytes!=sizeof(int32_t))
+    {
         return -1;
     }
     
@@ -212,7 +218,8 @@ int handshake_serv(t_log *logger,int fd_conexion)
 int crear_socket(t_log *logger, enum T_SOCKET tipo, char* ip, char* puerto)
 {
     int err;
-    struct addrinfo hints, *server_info;
+    struct addrinfo hints;
+    struct addrinfo *server_info;
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
@@ -274,7 +281,8 @@ int esperar_cliente(t_log* logger, char* nombre, int socket_servidor)
 
 //### MENSAJES Y LOGGERS
 
-void decir_hola(char* quien) {
+void decir_hola(char* quien) 
+{
     printf("Hola desde %s!!\n", quien);
 }
 

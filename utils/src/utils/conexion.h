@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <commons/log.h>
 #include <pthread.h>
+#include <utils/paquete.h>
 //#include <inttypes.h>
 
 #define PUERTO_KERNEL "8003"
@@ -24,11 +25,16 @@ typedef struct {
     char* server_name;
 } t_procesar_conexion_args;
 
+typedef struct
+{
+    int socket;
+} t_conexiones;
+
 // Mensajes (codigo de operacion)
 // Se requiere para saber que enviar/recibir
 typedef enum {
     ERROR=-1,
-    MENSAJE,
+    MENSAJE=0,
     HANDSHAKE,
     //DEBUG,
 } op_code;
@@ -42,6 +48,8 @@ enum T_SOCKET{
 
 int server_detach(t_log* logger, char* server_name, int socket_servidor);
 void procesar_conexion(void* void_args);
+void manejar_clientes(int server_fd);
+void liberar_conexion(int socket_cliente);
 
 //  ---------  OPERACIONES ---------
 
