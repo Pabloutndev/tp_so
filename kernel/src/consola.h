@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "planificacion.h"
+#include <utils/configs.h>
 
 /*
     * @NAME: handleConsole
@@ -51,5 +52,7 @@ int string_array_length(char **arr);
     * @RETURN: char*
 */
 char* getProcessState(char state);
+
+void cambiar_multiprogramacion(char* valor);
 
 #endif /*_CONSOLE_H_*/

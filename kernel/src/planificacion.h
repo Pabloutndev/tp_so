@@ -6,8 +6,6 @@
 #include <pthread.h>
 #include "proceso.h"
 
-extern pthread_t pscheduling;
-
 /*
     * @NAME: startScheduling
     * @DESC: Inicia la planificacion de procesos en el sistema
@@ -24,6 +22,6 @@ void startScheduling();
 */
 void stopScheduling();
 
-void swap(t_process* process);
+void scheduling();
 
 #endif

@@ -1,11 +1,11 @@
-#include "planificacion.h"
 #include <utils/shared.h>
 #include <utils/configs.h>
+#include "planificacion.h"
 
 
-extern pthread_t scheduling_thread = -1;
+pthread_t scheduling_thread = -1;
 sem_t scheduling_pause;
-
+extern t_log* logger;
 extern config_kernel config;
 extern t_listsProcesses listProcesses;
 
@@ -29,8 +29,10 @@ void startScheduling()
     //     }
     //     pthread_detach(scheduling_short);
     // }
+    pthread_t pscheduling;
+    sem_init(&scheduling_pause,1,1); // Revisar
     if (scheduling_thread == -1)
-        //pthread_create(&pscheduling, NULL, (void *)scheduling, NULL);
+        pthread_create(&pscheduling, NULL, (void *)scheduling, NULL);
     sem_post(&scheduling_pause);
 }
 
@@ -41,54 +43,89 @@ void stopScheduling()
 
 void scheduling()
 {
-    int size_new        = list_size(get_listOfProcesses("NEW"));
-    int size_ready      = list_size(get_listOfProcesses("READY")); 
-    int size_exec       = list_size(get_listOfProcesses("EXECUTE"));
-    int size_block_io   = list_size(get_listOfProcesses("BLOCK_IO"));
-    int size_block      = list_size(get_listOfProcesses("BLOCK")); 
+    //int size_new        = list_size(get_listOfProcesses("NEW")->Processes);
+    //int size_ready      = list_size(get_listOfProcesses("READY")->Processes); 
+    //int size_exec       = list_size(get_listOfProcesses("EXECUTE")->Processes);
+    //int size_block_io   = list_size(get_listOfProcesses("BLOCK_IO")->Processes);
+    //int size_block      = list_size(get_listOfProcesses("BLOCK")->Processes); 
     
-    
-    /*
-        crear la lista de procesos que esten ready, si hay que cargar new's a ready hacerlo
-        si no hay procesos ready, esperar a que haya
-        si hay procesos ready, ordenarlos segun el algoritmo de scheduling en una lista para mandar al cpu
-        ejecutar(1) el proceso que este en la cabeza de la lista
-        
-        *(1) antes de ejecutar, revisar sem para ver si se pauso el scheduling
-        *(2) pensar en como hacer I/O executions
-    */ 
-   t_process* process;
-    while (true){
+    t_process* process;
+
+    while(true)
+    {
         sem_wait(&scheduling_pause); // ? -> 1
-        while (list_size(get_listOfProcesses("NEW")) > 0 && config.grado_multiprogramacion >= (size_new + size_ready + size_exec) )
+        while (list_size(get_listOfProcesses("NEW")->Processes) > 0 && config.grado_multiprogramacion >= (list_size(get_listOfProcesses("BLOCK")->Processes) + list_size(get_listOfProcesses("READY")->Processes) + list_size(get_listOfProcesses("EXECUTE")->Processes)) )
         {
-//            process = list_remove(get_listOfProcesses("NEW")->Processes,0);
-//            list_add(get_listOfProcesses("READY")->Processes, process);
+            process = list_remove(get_listOfProcesses("NEW")->Processes,0);
+            list_add(get_listOfProcesses("READY")->Processes, process);
+            log_info(logger,"PID: %d - Estado anterior: NEW - Estado Actual: READY",process->PID);
             free(process);process = NULL;
         }
+        
         // planificar procesos en la lista ready
         // fifo does nothing
         // rr to ready list
 
-        while(list_size(get_listOfProcesses("READY")) > 0) 
+        while(list_size(get_listOfProcesses("READY")->Processes) > 0) 
         {
             // -> 1
             wait(&scheduling_pause);
             // -> 0
             process = list_remove(get_listOfProcesses("READY")->Processes,0);
             list_add(get_listOfProcesses("EXECUTE")->Processes, process);
+			printf("\n PROCESO MANDAR A CPU PID:%d\n",process->PID);
             // mandar a cpu, mientras que el proceso no termine o se bloquee por I/O, o quantum
-                // si es necesario, mandar a block_io
-                // si es necesario, mandar a block, si lo bloquea por interrupcion, una vez el cpu este listo, para seguir el proceso en block, se debe pasar a execute nuevamente
-                // si finaliso el proceso, pasar a finish
+            // si es necesario, mandar a block_io
+            // si es necesario, mandar a block, si lo bloquea por interrupcion, una vez el cpu este listo, para seguir el proceso en block, se debe pasar a execute nuevamente
+            // si finalizo el proceso, pasar a finish
+            int con_CPU_DIS = crear_socket(logger,CLIENTE,config.ip_cpu,config.puerto_cpu_dispatch);
+            enviar_proceso(con_CPU_DIS,process);
+            if(strcmp(config.algoritmo_planificacion,"FIFO")==0)
+            {
+                int codop = recibir_operacion(con_CPU_DIS);
+                while(1)
+                {
+                    if(codop == OK)
+                    {
+                        printf("PROCESO RECIBIDO OK POR CPU");
+                        break;
+                    } else if(codop==FAIL) {
+                        printf("Error al mandar proceso\n");
+                        break;
+                    } else {
+                        printf("Error en send process \n");
+                        break;
+                    }
+                }   
+            } else if(strcmp(config.algoritmo_planificacion,"RR")==0)
+            {
+                // esperar quantum
+                sleep(config.quantum / 1000);
+                // avisar a cpu que termine el proceso
+                int con_CPU_INT = crear_socket(logger,CLIENTE,config.ip_cpu,config.puerto_cpu_interrupt);
+                t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_FIN_QUANTUM);
+                enviar_paquete(con_CPU_INT,paquete);
+                // recibir proceso de cpu
+                int con_CPU_DIS = crear_socket(logger,CLIENTE,config.ip_cpu,config.puerto_cpu_dispatch);
+                T_PACKET cod_op = recibir_operacion(con_CPU_DIS);
+                while(cod_op!=PCKT_PROCESO_KERNEL){
+                    cod_op = recibir_operacion(con_CPU_DIS);
+                }
+                t_process* proceso;
+                recibir_proceso(con_CPU_DIS,proceso);
+                // mandar proceso a ready
+                eliminar_paquete(paquete);
+            }
             list_remove(get_listOfProcesses("EXECUTE")->Processes,0);
+            list_add(get_listOfProcesses("READY")->Processes, process);
+
             free(process);process = NULL;
             sem_post(&scheduling_pause);
             // -> 1
-        } // termina ejecutar todos los procesos en ready
+        }
 
         // pasar block a ready
-        while(list_size(get_listOfProcesses("BLOCK")) > 0) 
+        while(list_size(get_listOfProcesses("BLOCK")->Processes) > 0) 
         {
             // -> 1
             wait(&scheduling_pause);
@@ -99,14 +136,18 @@ void scheduling()
             sem_post(&scheduling_pause);
             // -> 1
         } 
+        
+        while(list_size(get_listOfProcesses("FINISH")->Processes) > 0)
+        {
+            process = list_get(get_listOfProcesses("FINISH")->Processes,0);
+            log_info(logger,"Finaliza el Proceso PID:%d - Motivo: SUCCESS",process->PID);
+            finishProcess(process->PID);
+            free(process);process=NULL;
+        }
 
         sem_post(&scheduling_pause);
-
     }
     
-    
-
-
 }
 
 /*

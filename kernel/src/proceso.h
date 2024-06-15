@@ -7,15 +7,16 @@
 #include <commons/log.h>
 #include <commons/collections/list.h>
 #include <utils/cpu.h>
+#include <utils/conexion.h>
 
 //#include <utils/shared.h> // for utils shared throughout the project
 //#include "cpu.h"
 
-typedef struct  { 
+/*typedef struct  { 
     int PID;
     int QUANTUM; // VRR
     t_cpu cpu;
-} t_process;
+} t_process;*/
 
 typedef struct {
     char* name;
@@ -64,5 +65,9 @@ void finishProcess(char*);
     *  - quantum: int
 */
 void initialize_process(t_process* process, int pid, int quantum);
+
+
+bool compare_pid(void* data, void* arg);
+int remove_process_by_pid(int pid);
 
 #endif

@@ -1,9 +1,10 @@
-#include <commons/collections/list.h>
-#include <string.h>
+#include <unistd.h>
+#include <limits.h>
 #include "opMemoria.h"
 
 extern t_log* logger;
 extern t_list memoria_procesos;
+extern config_memoria config;
 
 int pid = 0;
 
@@ -21,7 +22,23 @@ void iniciar_proceso(int socket_cliente)
 	buffer = recibir_buffer(&size, socket_cliente);
     
 	proceso->pid = pid;
-	proceso->path = strdup(leer_string(buffer, &desp));
+	
+	char current_path[PATH_MAX];
+	getcwd(current_path, sizeof(current_path));
+
+	char* string_leido = leer_string(buffer,&desp);
+	size_t total_length = strlen(current_path) + strlen(string_leido) + 1;
+	char* path_completo = malloc(total_length);
+
+	strcpy(path_completo, current_path);
+	strcat(path_completo, string_leido);
+	
+	proceso->path = strdup(path_completo);
+
+	printf("\nPATH COMPLETO DEL PROCESO: %s\n",proceso->path);
+	
+	free(string_leido);
+	free(path_completo);
 
 	list_add(&memoria_procesos,proceso);
 
@@ -79,3 +96,63 @@ void finalizar_proceso(int socket_cliente)
 	
 }
 
+
+void enviar_instruccion_cpu(int client_socket)
+{
+	int size, desp = 0;
+	char * buffer;
+	int pid;
+	int32_t pc;
+
+	buffer = recibir_buffer(&size, client_socket);
+	pid = leer_entero(buffer, &desp);
+	pc = leer_entero(buffer, &desp);
+	
+   	bool find_Process_PID(void* data) {
+		proceso_mem *p = (proceso_mem*) data;
+		return (p->pid == pid);
+	};
+
+	proceso_mem *proceso = list_find(&memoria_procesos,find_Process_PID);
+	
+	if(proceso!=NULL)
+	{    
+		FILE *file = fopen(proceso->path, "r");
+		if( file == NULL ) {
+			perror("Error al abrir archivo de instrucciones");
+			return;
+		}
+		
+		char* line = NULL;
+		size_t len = 0;
+		ssize_t read;
+		int current_line = 0;
+
+		while((read = getline(&line, &len, file)) != -1) {
+			if(current_line == pc) {
+				break;
+			}
+			current_line++;
+		}
+
+		if(current_line == pc && read != -1)
+		{
+			t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_INSTRUCTION_MEM);
+			printf("\nmandamos: %s\n", line);
+			agregar_a_paquete(paquete,line,(strlen(line)+1));
+			enviar_paquete(paquete,client_socket);
+		}
+		else 
+		{
+			perror("Error al buscar instruccion en archivo de instrucciones");
+		}
+
+        fclose(file);
+        free(line);
+	} else {
+		printf("PRoceso no encontrado para PID: %d\n",pid);
+	}
+
+	free(buffer);
+	liberar_conexion(client_socket);
+}

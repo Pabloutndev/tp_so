@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 	//int con_MEM = crear_socket(logger,CLIENTE,config.ip_memoria,config.puerto_memoria);
 	
 	//send_string(con_MEM, "HOLA CPU!");
-    
+
     init_listsProcesses(&listsProcesses);
 
 	int server_fd = crear_socket(logger,SERVER,IP_GENERICA,config.puerto_escucha);
@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
 
 	while(1)
 	{
-
+        
 	}
 
 	log_info(logger,"Modulo Kernel Finalizado.");

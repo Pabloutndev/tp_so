@@ -1,6 +1,8 @@
 #include "consola.h"
 
 extern t_listsProcesses listsProcesses;
+extern config_kernel config;
+extern t_log *logger;
 
 int run_console_cmnd(char **cmnd)
 { // run a command from the console
@@ -17,7 +19,8 @@ int run_console_cmnd(char **cmnd)
         {"Sstart", 4},
         {"Sstop", 5},
         {"Pstate", 6},
-        {"Exit", 7}};
+        {"Cmult", 7},
+        {"Exit", 8}};
     int cmd_code = -1;
     for (int i = 0; i < sizeof(commands) / sizeof(commands[0]); i++)
     {
@@ -43,6 +46,7 @@ int run_console_cmnd(char **cmnd)
                "  Sstart - Start scheduling\n"
                "  Sstop - Stop scheduling\n"
                "  Pstate - Show process state\n"
+               "  Cmult - Change degree of multiprogramming\n"
                "  Exit  - Exit the console\n"
                "\n");
         break;
@@ -53,7 +57,7 @@ int run_console_cmnd(char **cmnd)
         startProcess(cmnd);
         break;
     case 3: // FINALIZAR_PROCESO
-        finishProcess(cmnd);
+        finishProcess(cmnd[1]);
         break;
     case 4: // INICIAR_PLANIFICACION
         startScheduling();
@@ -64,7 +68,10 @@ int run_console_cmnd(char **cmnd)
     case 6: // PROCESO_ESTADO
         listStateProcess();
         break;
-    case 7: // SALIR
+    case 7: // MULTIPROGRAMACION [VALOR]
+        cambiar_multiprogramacion(cmnd[1]);
+        break;
+    case 8: // SALIR
         return;
         break;
     default:
@@ -97,13 +104,13 @@ void handleConsole(void)
 
 void executeScriptOP(char *path)
 {
-    char* tasks = readScriptOP(path);
+    //char* tasks = readScriptOP(path);
     // execute tasks[i] (?)
 }
 
 void readScriptOP(char *path) // void, returning char*?, whats the intention?
 {
-    FILE *file = fopen(path, "r");
+    /*FILE *file = fopen(path, "r");
     if (file == NULL)
     {
         perror("Error al abrir el archivo");
@@ -133,8 +140,8 @@ void readScriptOP(char *path) // void, returning char*?, whats the intention?
     content[size] = '\0';
 
     fclose(file);
-
     return content;
+    */
 }
 
 void listStateProcess() 
@@ -157,3 +164,8 @@ void listStateProcess()
     printf("------------------------------------------------\n");
 }
 
+void cambiar_multiprogramacion(char* valor)
+{
+    config.grado_multiprogramacion = atoi(valor);
+    log_info(logger,"\nGRADO_MULTIPROGRAMACION: %d\n",config.grado_multiprogramacion);
+}

@@ -15,7 +15,7 @@ void startProcess(char* path)
     int con_MEM = crear_socket(logger,CLIENTE,config.ip_memoria,config.puerto_memoria);
 
     t_paquete* package = crear_paquete_con_codigo_op(PCKT_START_PROCESS);
-    path = "/instructions/process1.txt";
+    path = "/instrucciones/process1.txt";
     agregar_a_paquete(package,path,(strlen(path) + 1));
 
     enviar_paquete(package, con_MEM);
@@ -37,41 +37,53 @@ void startProcess(char* path)
     {
         printf("Error en startProcess \n");
     }
-
+    eliminar_paquete(package);
+    liberar_conexion(con_MEM);
+    
     int tam_multprog =  list_size( get_listOfProcesses("NEW")->Processes)   + 
                         list_size( get_listOfProcesses("READY")->Processes) + 
                         list_size( get_listOfProcesses("EXECUTE")->Processes);
 
-    if(config.grado_multiprogramacion >= tam_multprog)
+    if(config.grado_multiprogramacion > tam_multprog)
     {
-        list_add((get_listOfProcesses("NEW")->Processes),process);
-        printf("Proceso %d: ENCOLADO EN NEW\n",process->PID);
+        list_add((get_listOfProcesses("READY")->Processes),process);
+        log_info(logger,"\nProceso %d: se creo y envio a READY\n",process->PID);
     } 
     else 
     {
-        printf("Proceso %d: NO PUEDE SER ENCOLADO EN NEW POR GRADO EXCESO DE MULTIPROGRAMACION\n",process->PID);
+        list_add((get_listOfProcesses("NEW")->Processes),process);
+        log_info(logger,"LIMITE DEL GRADO DE MULTIPROGRAMACION - VALOR:%d\n",config.grado_multiprogramacion);
+        log_info(logger,"\nProceso %d: SE CREO EN NEW\n",process->PID);
     }
 
-    eliminar_paquete(package);
-    liberar_conexion(con_MEM);
 }
 
 void finishProcess(char* pid_str)
 {
-    //int pid = atoi(pid_str);
+    int pid = atoi(pid_str);
 
-    // kernel
-    // Search for process in all lists of process and delete
+	int remove = remove_process_by_pid(pid);
 
-    // Notify to Memory
-    //T_PACKAGE* package = create_package(FINISH_PROCESS);
-    //add_int_to_package(package,pid);
+    if (remove == 1)
+    {
+        int con_MEM = crear_socket(logger,CLIENTE,config.ip_memoria,config.puerto_memoria);
 
-    //int resp_op = send_package(skt_client,package);
-    
-    printf("\nProcess finished\n");
-    
-    //destroy_package(package);
+        t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_FINISH_PROCESS);
+
+        agregar_entero_a_paquete(paquete,pid);
+
+        enviar_paquete(paquete, con_MEM);
+
+        eliminar_paquete(paquete);
+        
+        //log_info(logger,"Proceso PID:%d finished\n",pid);
+        
+        liberar_conexion(con_MEM);
+    } 
+    else 
+    {
+        log_info(logger,"Proceso PID:%d No se encontro.\n",pid);
+    }
 }
 
 void initialize_process(t_process* process, int pid, int quantum) 
@@ -103,4 +115,29 @@ t_listProcess* get_listOfProcesses(char* name)
         }
     }
     return NULL;
+}
+
+int remove_process_by_pid(int pid)
+{
+    int i=0;
+    for(i=0;i<6;i++)
+    {
+        t_list* processList = listsProcesses.listProcess[i].Processes;
+        
+        bool _findProcessPID(void* data) {
+            t_process* proceso = (t_process*) data;
+            return proceso->PID == pid;
+        };
+        
+        t_process* foundProcess = (t_process*) list_find(processList, _findProcessPID);
+        
+        if (foundProcess != NULL) 
+        {
+            t_process* removedProcess = (t_process*) list_remove_by_condition(processList, _findProcessPID);
+            free(removedProcess);
+            return 1; // Process was found and removed
+        }
+    }
+
+    return 0; // Process not found
 }

@@ -170,7 +170,6 @@ void enviarFail(int socket)
 	eliminar_paquete(paquete);
 	
 	liberar_conexion(socket);
-	
 }
 
 
@@ -181,4 +180,49 @@ int get_pid(int socket)
 	buffer = recibir_buffer(&size, socket);// get PID from memory module
 	pid = leer_entero(buffer,&desp);
 	return pid;
+}
+
+void enviar_proceso(int socket_client, t_process* proceso)
+{
+    t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_PROCESO);
+
+    agregar_entero_a_paquete(paquete,proceso->PID);
+    agregar_entero_a_paquete(paquete,proceso->QUANTUM);
+    agregar_entero_a_paquete(paquete,proceso->cpu.AX);
+    agregar_entero_a_paquete(paquete,proceso->cpu.BX);
+    agregar_entero_a_paquete(paquete,proceso->cpu.CX);
+    agregar_entero_a_paquete(paquete,proceso->cpu.DI);
+    agregar_entero_a_paquete(paquete,proceso->cpu.DX);
+    agregar_entero_a_paquete(paquete,proceso->cpu.EAX);
+    agregar_entero_a_paquete(paquete,proceso->cpu.EBX);
+    agregar_entero_a_paquete(paquete,proceso->cpu.ECX);
+    agregar_entero_a_paquete(paquete,proceso->cpu.EDX);
+    agregar_entero_a_paquete(paquete,proceso->cpu.PC);
+    agregar_entero_a_paquete(paquete,proceso->cpu.SI);
+
+    enviar_paquete(paquete,socket_client);
+    eliminar_paquete(paquete);
+}
+
+void recibir_proceso(int socket_client, t_process* proceso)
+{
+    int size;
+    int desplazamiento = 0;
+    char* buffer = recibir_buffer(&size, socket_client);
+    
+    proceso->PID        = leer_entero(buffer,&desplazamiento);
+    proceso->QUANTUM    = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.AX     = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.BX     = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.CX     = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.DI     = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.DX     = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.EAX    = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.EBX    = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.ECX    = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.EDX    = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.PC     = leer_entero(buffer,&desplazamiento);
+    proceso->cpu.SI     = leer_entero(buffer,&desplazamiento);
+
+    free(buffer);
 }

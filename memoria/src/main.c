@@ -13,7 +13,7 @@ t_list memoria_procesos;
 
 int main(int argc, char* argv[]) {
 	logger = iniciar_logger("memoria.log","memoria");
-	
+
 	config = memoria_cargar_config("memoria.config");
 	
 	log_info(logger,"### LOG MEMORIA ### \n");
@@ -79,6 +79,10 @@ void handleConnection(void* client_socket_ptr)
 			break;
 		case PCKT_FINISH_PROCESS:
 			finalizar_proceso(client_socket);
+		case PCKT_INSTRUCTION:
+			// RETARDO ANTES DE MANDAR LA INSTRUCCION
+			sleep(config.retardo_respuesta / 1000);
+			enviar_instruccion_cpu(client_socket);
 		case -1:
 			printf("se cerro la conexion / error\n");
 			//disconnected = 1;
