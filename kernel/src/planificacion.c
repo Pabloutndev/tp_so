@@ -64,15 +64,19 @@ void scheduling()
             sem_wait(&scheduling_pause);
             // -> 0
             process = list_remove(get_listOfProcesses("READY")->Processes,0);
-            loggerCambioDeEstado(process->PID,"READY","EXECUTE");
             list_add(get_listOfProcesses("EXECUTE")->Processes, process);
-			printf("\n PROCESO MANDAR A CPU PID:%d\n",process->PID);
+            
+            loggerCambioDeEstado(process->PID,"READY","EXECUTE");
+
             // mandar a cpu, mientras que el proceso no termine o se bloquee por I/O, o quantum
             // si es necesario, mandar a block_io
             // si es necesario, mandar a block, si lo bloquea por interrupcion, una vez el cpu este listo, para seguir el proceso en block, se debe pasar a execute nuevamente
             // si finalizo el proceso, pasar a finish
             int con_CPU_DIS = crear_socket(logger,CLIENTE,config.ip_cpu,config.puerto_cpu_dispatch);
+            printf("PROCESO MANDAR A CPU PID:%d\n",process->PID);
+            
             enviar_proceso(con_CPU_DIS,process);
+            
             if(strcmp(config.algoritmo_planificacion, "FIFO")==0)
             {
                 int codop = recibir_operacion(con_CPU_DIS);
@@ -95,27 +99,25 @@ void scheduling()
             {
                 // esperar quantum
                 sleep(config.quantum / 1000);
+            
                 // avisar a cpu que termine el proceso
                 int con_CPU_INT = crear_socket(logger,CLIENTE,config.ip_cpu,config.puerto_cpu_interrupt);
-                //t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_FIN_QUANTUM);
-                t_paquete* paquete = crear_paquete_con_codigo_op(INTERRUPT);
-                agregar_entero_a_paquete(paquete,process->PID);
-                enviar_paquete(paquete,con_CPU_INT);
-                // recibir proceso de cpu
-                int con_CPU_DIS = crear_socket(logger,CLIENTE,config.ip_cpu,config.puerto_cpu_dispatch);
-                T_PACKET cod_op = recibir_operacion(con_CPU_DIS);
-                while(cod_op!=PCKT_PROCESO_KERNEL){
-                    cod_op = recibir_operacion(con_CPU_DIS);
-                }
-                recibir_proceso(con_CPU_DIS,process);
-                // mandar proceso a ready
-                eliminar_paquete(paquete);
-            }
-            list_remove(get_listOfProcesses("EXECUTE")->Processes,0);
-            loggerCambioDeEstado(process->PID,"EXECUTE","READY");
-            list_add(get_listOfProcesses("READY")->Processes, process);
+            
+                interrupcion(con_CPU_INT,process,INTERRUPT); //INTERRUPT_QUANTUM
 
-            free(process);process = NULL;
+                // recibir proceso de cpu
+                esperar_proceso_cpu(con_CPU_DIS,process);
+                
+                printf("CONTEXTO ACTUALIZADO DEL PROCESO:PID:%d\n",process->PID);
+            }
+            // mandar proceso a ready
+            process = list_remove(get_listOfProcesses("EXECUTE")->Processes,0);
+            list_add(get_listOfProcesses("READY")->Processes, process);
+            
+            loggerCambioDeEstado(process->PID,"EXECUTE","READY");
+
+            liberar_conexion(con_CPU_DIS);
+            //free(process);process = NULL;
             sem_post(&scheduling_pause);
             // -> 1
         }
@@ -154,7 +156,23 @@ void loggerCambioDeEstado(uint32_t pid, const char* estadoAnterior,const char* e
     log_info(logger, "PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pid, estadoAnterior, estadoActual);
 }
 
+void interrupcion(int skt_cpu_int,t_process* proceso,T_PACKET packet )
+{
+    t_paquete* paquete = crear_paquete_con_codigo_op(packet);
+    agregar_entero_a_paquete(paquete,proceso->PID);
+    enviar_paquete(paquete,skt_cpu_int);
+    eliminar_paquete(paquete);
+}
 
+void esperar_proceso_cpu(int skt_client, t_process* proceso)
+{
+    T_PACKET cod_op = recibir_operacion(skt_client);
+    while(cod_op!=PCKT_PROCESO)
+    {
+        cod_op = recibir_operacion(skt_client);
+    }
+    recibir_proceso(skt_client,proceso);
+}
 /*
     ready -> execute -> mandar al cpu -> block_io -> finish
                                          finish 

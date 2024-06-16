@@ -24,6 +24,8 @@ void stopScheduling();
 
 void scheduling();
 
-void loggerCambioDeEstado(uint32_t pid, const char* estadoAnterior,const char* estadoActual);
+void interrupcion(int skt_cpu_int,t_process* proceso,T_PACKET packet );
+void esperar_proceso_cpu(int skt_client, t_process* proceso);
 
+void loggerCambioDeEstado(uint32_t pid, const char* estadoAnterior,const char* estadoActual);
 #endif
