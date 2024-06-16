@@ -7,6 +7,7 @@ extern t_listsProcesses listsProcesses;
 //extern T_CONNECTION con_CPU_clientDisp;
 extern config_kernel config;
 extern t_log *logger;
+int x = 0;
 
 void startProcess(char* path)
 {
@@ -15,7 +16,12 @@ void startProcess(char* path)
     int con_MEM = crear_socket(logger,CLIENTE,config.ip_memoria,config.puerto_memoria);
 
     t_paquete* package = crear_paquete_con_codigo_op(PCKT_START_PROCESS);
+    
+    x++;
     path = "/instrucciones/process1.txt";
+    if(x==3){
+        path = "/instrucciones/process2.txt";
+    }
     agregar_a_paquete(package,path,(strlen(path) + 1));
 
     enviar_paquete(package, con_MEM);

@@ -166,6 +166,13 @@ void listStateProcess()
 
 void cambiar_multiprogramacion(char* valor)
 {
-    config.grado_multiprogramacion = atoi(valor);
-    log_info(logger,"\nGRADO_MULTIPROGRAMACION: %d\n",config.grado_multiprogramacion);
+    if(valor!=NULL)
+    {
+        config.grado_multiprogramacion = atoi(valor);
+        log_info(logger,"\nGRADO_MULTIPROGRAMACION: %d\n",config.grado_multiprogramacion);
+    }
+    else
+    {
+        log_error(logger, "Ingresa el grado que desee");
+    }
 }
