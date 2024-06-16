@@ -32,6 +32,7 @@ typedef enum
     PCKT_PROCESO_KERNEL,
     PCKT_INSTRUCTION,
     PCKT_INSTRUCTION_MEM,
+    INTERRUPT,
     PCKT_FIN_QUANTUM,
     PCKT_ERROR = 400,
 } T_PACKET;
@@ -98,7 +99,7 @@ void enviar_proceso(int socket_client, t_process* proceso);
 */
 void recibir_proceso(int socket_client, t_process* proceso);
 
-
+void recibir_interrupcion(int skt_client, int* interrupt_pid);
 
 void enviarOK(int socket);
 void enviarOK_PID(int socket, int pid);

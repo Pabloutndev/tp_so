@@ -24,4 +24,6 @@ void stopScheduling();
 
 void scheduling();
 
+void loggerCambioDeEstado(uint32_t pid, const char* estadoAnterior,const char* estadoActual);
+
 #endif

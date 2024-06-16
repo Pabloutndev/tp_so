@@ -14,25 +14,13 @@ void startScheduling()
     // if (firstTime == 0)
     // {
     //     firstTime = 1;
-    //     pthread_t scheduling_short;
-    //     if (strcmp(/*config.ALGORITHM*/ "FIFO", "FIFO") == 0)
-    //     {
-    //         pthread_create(&scheduling_short, NULL, (void *)scheduling_FIFO, NULL);
-    //     }
-    //     else if (strcmp(/*config.ALGORITHM*/ "RR", "RR") == 0)
-    //     {
-    //         pthread_create(&scheduling_short, NULL, (void *)scheduling_RR, NULL);
-    //     }
-    //     else if (strcmp(/*config.ALGORITHM*/ "VRR", "VRR") == 0)
-    //     {
-    //         pthread_create(&scheduling_short, NULL, (void *)scheduling_VRR, NULL);
-    //     }
-    //     pthread_detach(scheduling_short);
-    // }
     pthread_t pscheduling;
-    sem_init(&scheduling_pause,1,1); // Revisar
+    sem_init(&scheduling_pause,0,1);
+
     if (scheduling_thread == -1)
+    {
         pthread_create(&pscheduling, NULL, (void *)scheduling, NULL);
+    }
     sem_post(&scheduling_pause);
 }
 
@@ -54,10 +42,14 @@ void scheduling()
     while(true)
     {
         sem_wait(&scheduling_pause); // ? -> 1
-        while (list_size(get_listOfProcesses("NEW")->Processes) > 0 && config.grado_multiprogramacion >= (list_size(get_listOfProcesses("BLOCK")->Processes) + list_size(get_listOfProcesses("READY")->Processes) + list_size(get_listOfProcesses("EXECUTE")->Processes)) )
+        while ( list_size(get_listOfProcesses("NEW")->Processes) > 0 && 
+                config.grado_multiprogramacion >= ( list_size(get_listOfProcesses("BLOCK")->Processes) + 
+                                                    list_size(get_listOfProcesses("READY")->Processes) + 
+                                                    list_size(get_listOfProcesses("EXECUTE")->Processes)))
         {
             process = list_remove(get_listOfProcesses("NEW")->Processes,0);
             list_add(get_listOfProcesses("READY")->Processes, process);
+            loggerCambioDeEstado(process->PID,"NEW","READY");
             log_info(logger,"PID: %d - Estado anterior: NEW - Estado Actual: READY",process->PID);
             free(process);process = NULL;
         }
@@ -69,9 +61,10 @@ void scheduling()
         while(list_size(get_listOfProcesses("READY")->Processes) > 0) 
         {
             // -> 1
-            wait(&scheduling_pause);
+            sem_wait(&scheduling_pause);
             // -> 0
             process = list_remove(get_listOfProcesses("READY")->Processes,0);
+            loggerCambioDeEstado(process->PID,"READY","EXECUTE");
             list_add(get_listOfProcesses("EXECUTE")->Processes, process);
 			printf("\n PROCESO MANDAR A CPU PID:%d\n",process->PID);
             // mandar a cpu, mientras que el proceso no termine o se bloquee por I/O, o quantum
@@ -80,7 +73,7 @@ void scheduling()
             // si finalizo el proceso, pasar a finish
             int con_CPU_DIS = crear_socket(logger,CLIENTE,config.ip_cpu,config.puerto_cpu_dispatch);
             enviar_proceso(con_CPU_DIS,process);
-            if(strcmp(config.algoritmo_planificacion,"FIFO")==0)
+            if(strcmp(config.algoritmo_planificacion, "FIFO")==0)
             {
                 int codop = recibir_operacion(con_CPU_DIS);
                 while(1)
@@ -97,26 +90,29 @@ void scheduling()
                         break;
                     }
                 }   
-            } else if(strcmp(config.algoritmo_planificacion,"RR")==0)
+            } 
+            else if(strcmp(config.algoritmo_planificacion,"RR")==0)
             {
                 // esperar quantum
                 sleep(config.quantum / 1000);
                 // avisar a cpu que termine el proceso
                 int con_CPU_INT = crear_socket(logger,CLIENTE,config.ip_cpu,config.puerto_cpu_interrupt);
-                t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_FIN_QUANTUM);
-                enviar_paquete(con_CPU_INT,paquete);
+                //t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_FIN_QUANTUM);
+                t_paquete* paquete = crear_paquete_con_codigo_op(INTERRUPT);
+                agregar_entero_a_paquete(paquete,process->PID);
+                enviar_paquete(paquete,con_CPU_INT);
                 // recibir proceso de cpu
                 int con_CPU_DIS = crear_socket(logger,CLIENTE,config.ip_cpu,config.puerto_cpu_dispatch);
                 T_PACKET cod_op = recibir_operacion(con_CPU_DIS);
                 while(cod_op!=PCKT_PROCESO_KERNEL){
                     cod_op = recibir_operacion(con_CPU_DIS);
                 }
-                t_process* proceso;
-                recibir_proceso(con_CPU_DIS,proceso);
+                recibir_proceso(con_CPU_DIS,process);
                 // mandar proceso a ready
                 eliminar_paquete(paquete);
             }
             list_remove(get_listOfProcesses("EXECUTE")->Processes,0);
+            loggerCambioDeEstado(process->PID,"EXECUTE","READY");
             list_add(get_listOfProcesses("READY")->Processes, process);
 
             free(process);process = NULL;
@@ -128,27 +124,36 @@ void scheduling()
         while(list_size(get_listOfProcesses("BLOCK")->Processes) > 0) 
         {
             // -> 1
-            wait(&scheduling_pause);
+            sem_wait(&scheduling_pause);
             // -> 0
             process = list_remove(get_listOfProcesses("BLOCK")->Processes,0);
             list_add(get_listOfProcesses("READY")->Processes, process);
             free(process);process = NULL;
             sem_post(&scheduling_pause);
             // -> 1
-        } 
+        }
         
         while(list_size(get_listOfProcesses("FINISH")->Processes) > 0)
         {
             process = list_get(get_listOfProcesses("FINISH")->Processes,0);
             log_info(logger,"Finaliza el Proceso PID:%d - Motivo: SUCCESS",process->PID);
-            finishProcess(process->PID);
+            char buffer[10];
+            sprintf(buffer, "%d", process->PID);
+            finishProcess(buffer);
             free(process);process=NULL;
+            //free(buffer);
         }
 
         sem_post(&scheduling_pause);
     }
     
 }
+
+void loggerCambioDeEstado(uint32_t pid, const char* estadoAnterior,const char* estadoActual)
+{
+    log_info(logger, "PID: <%d> - Estado Anterior: <%s> - Estado Actual: <%s>", pid, estadoAnterior, estadoActual);
+}
+
 
 /*
     ready -> execute -> mandar al cpu -> block_io -> finish

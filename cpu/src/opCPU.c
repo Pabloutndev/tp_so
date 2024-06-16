@@ -4,40 +4,32 @@
 extern config_cpu config;
 extern t_log* logger;
 extern sem_t sem_instruccion; // sincronizar fetch y ejecucion
+extern int interrupt_pid;
+extern pthread_mutex_t interrupt_mutex;
 
-void ciclo_instruccion_cpu(t_process* process)
+void ciclo_instruccion_cpu(int client_socket, t_process* process)
 {
     int conexion_mem = crear_socket(logger,CLIENTE,config.ip_memoria,config.puerto_memoria); 
-    int skt_srv_int = crear_socket(logger, SERVER, config.ip_cpu, config.puerto_cpu_interrupt);
     char* instruccion = NULL;
     
-    pthread_t interrupt_thread;
-    pthread_create(&interrupt_thread, NULL, check_interrupt,&skt_srv_int);
-
     while(1)
     {   
         conexion_mem = crear_socket(logger,CLIENTE,config.ip_memoria,config.puerto_memoria);
 
         fetch(conexion_mem,process,&instruccion);
-
-        if (instruccion == NULL) {
-            break;// Fin del programa
-        }
         
-        printf("\n Instruccion por procesar en cpu: %s",instruccion);
+        printf("Instruccion por procesar en cpu: %s\n",instruccion);
 
         decode(&(process->cpu), &instruccion);
         
         execute(&(process->cpu), instruccion);
-
-        if(     strcmp(instruccion,"FIN") == 0) || 
-                check_interrupt()
-            )
+        
+        if(check_interrupt(process,client_socket))
         {
             break;
         }
 
-        printf("\nPROCESO:%d - PC: %d\n",process->PID, process->cpu.PC);
+        printf("PROCESO:%d - PC: %d\n",process->PID, process->cpu.PC);
     }
 
     liberar_conexion(conexion_mem);
@@ -47,14 +39,13 @@ void ciclo_instruccion_cpu(t_process* process)
 void fetch(int socket_mem,t_process* process,char** instruccion) 
 {
     pedir_instruccion(socket_mem,process->PID,process->cpu.PC);
- 
     recibir_instruccion(socket_mem,instruccion);
 }
 
 // Decode: Interpretar la instrucción
 void decode(t_cpu* cpu, char** instruction) {
-    //uint32_t address = translate_address(cpu->registers.PC, PAGE_SIZE); // Traducimos la dirección
-    //strcpy(instruction, "SET AX 1"); // Ejemplo de instrucción
+    // uint32_t address = translate_address(cpu->registers.PC, PAGE_SIZE); // Traducimos la dirección
+    // strcpy(instruction, "SET AX 1"); // Ejemplo de instrucción
     // Interpretamos la instrucción 
 }
 
@@ -66,8 +57,6 @@ void execute(t_cpu* cpu, char* instrucciones) {
     char* reg2;
     uint32_t value;
 
-
-    //sscanf(instruction, "%s %s %s", op, reg1, reg2);
     char **instruccion = string_split(instrucciones, " ");
 
     printf("INSTRUCCION A EJECUTAR: %s\n",instrucciones);
@@ -114,37 +103,22 @@ void execute(t_cpu* cpu, char* instrucciones) {
     free(reg1);
 }
 
-// Check Interrupt: Verificar interrupciones
-void check_interrupt(int socket_interrupt) {
-    int socket_servidor = 
-    
-    int interrupt = 0;
-
-    PCKT_FIN_QUANTUM
-
-    while()
-
-
-/*    if (interrupt) {
-        t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_INTERRUPT);
-        agregar_entero_a_paquete(paquete, cpu->PID);
-        agregar_entero_a_paquete(paquete, cpu->registers.PC);
-        enviar_paquete(paquete, socket_interrupt);
-        eliminar_paquete(paquete);
+int check_interrupt(t_process* process, int client_socket) 
+{
+    pthread_mutex_lock(&interrupt_mutex);
+    if (interrupt_pid != -1) 
+    {
+        pthread_mutex_unlock(&interrupt_mutex);
+        printf("\nHUBO INTERRUPCION!!!\n");
+        enviar_proceso(client_socket, process);
+        interrupt_pid = -1;
+        return 1;
     } else {
-        if (cpu->QUANTUM > 0) {
-            cpu->QUANTUM--;
-            fetch(cpu); // Continuamos con el ciclo de instrucción
-        } else {
-            // Quantum cumplido, enviar contexto de regreso al kernel
-            t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_PROCESO_TERMINADO);
-            agregar_entero_a_paquete(paquete, cpu->PID);
-            agregar_entero_a_paquete(paquete, cpu->registers.PC);
-            enviar_paquete(paquete, socket_interrupt);
-            eliminar_paquete(paquete);
-        }
-    }*/
+        pthread_mutex_unlock(&interrupt_mutex);
+        return 0;
+    }
 }
+
 
 void pedir_instruccion(int socket, int pid, int32_t pc)
 {
@@ -173,78 +147,28 @@ void recibir_instruccion(int skt_mem,char** instruccion)
 
 
 
-/*
-char* fetch_instruction(int memoria_sockfd, uint32_t pc) {
-    // Solicitar la instrucción a Memoria utilizando el Program Counter
-    send(memoria_sockfd, &pc, sizeof(uint32_t), 0);
-    char *instruction = malloc(100); // Asumimos que la instrucción tiene un máximo de 100 caracteres
-    recv(memoria_sockfd, instruction, 100, 0);
-    printf("FETCH - Program Counter: %u\n", pc);
-    return instruction;
-}
-// Función para ejecutar la instrucción
-void execute_instruction(char *opcode, char **params, t_cpu *cpu, int memoria_sockfd, int io_sockfd, int kernel_sockfd) {
-    // Implementar la lógica de cada instrucción
-    if (strcmp(opcode, "SET") == 0) {
-        // Ejemplo para SET
-        if (strcmp(params[0], "AX") == 0) {
-            cpu->AX = atoi(params[1]);
-        } else if (strcmp(params[0], "BX") == 0) {
-            cpu->BX = atoi(params[1]);
+/*    if (interrupt) {
+        t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_INTERRUPT);
+        agregar_entero_a_paquete(paquete, cpu->PID);
+        agregar_entero_a_paquete(paquete, cpu->registers.PC);
+        enviar_paquete(paquete, socket_interrupt);
+        eliminar_paquete(paquete);
+    } else {
+        if (cpu->QUANTUM > 0) {
+            cpu->QUANTUM--;
+            fetch(cpu); // Continuamos con el ciclo de instrucción
+        } else {
+            // Quantum cumplido, enviar contexto de regreso al kernel
+            t_paquete* paquete = crear_paquete_con_codigo_op(PCKT_PROCESO_TERMINADO);
+            agregar_entero_a_paquete(paquete, cpu->PID);
+            agregar_entero_a_paquete(paquete, cpu->registers.PC);
+            enviar_paquete(paquete, socket_interrupt);
+            eliminar_paquete(paquete);
         }
-        // ... otras asignaciones
-    } else if (strcmp(opcode, "MOV_IN") == 0) {
-        // Ejemplo para MOV_IN
-        uint32_t direccion_logica = cpu->EAX; // Asumimos que la dirección lógica está en EAX
-        // Traducción de dirección lógica a física
-        // Comunicación con Memoria
-        // Actualización de registros
     }
-    
-    // ... otras instrucciones
-    printf("Ejecutando: %s\n", opcode);
+}*/
 
-
-}
-
-// Función para decodificar la instrucción
-void decode_instruction(char *instruction, char *opcode, char **params) {
-    char *token = strtok(instruction, " ");
-    strcpy(opcode, token);
-    int i = 0;
-    while ((token = strtok(NULL, " ")) != NULL) {
-        params[i++] = token;
-    }
-}
-// Función para chequear si hay una interrupción
-bool check_interrupt(int kernel_sockfd, t_process *process) {
-    int interrupt;
-    recv(kernel_sockfd, &interrupt, sizeof(int), MSG_DONTWAIT);
-    if (interrupt) {
-        send_context(kernel_sockfd, process);
-        return true;
-    }
-    return false;
-}
-
-
-void ciclo_cpu() {
-    int program_counter = 0;
-    //char instruccion[MAX_INSTRUCTION_LENGTH];
-    //Instruccion instr_decoded;
-
-    while (1) {
-        fetch_instruccion(program_counter, instruccion);
-        decode_instruccion(instruccion, &instr_decoded);
-        execute_instruccion(&instr_decoded);
-        check_interrupt(kernel,process);
-
-        // Actualizar el Program Counter (esto es solo un ejemplo)
-        program_counter++;
-    }
-}
-
-
+/*
 // Inicializar la TLB
 t_tlb* init_tlb(int max_entries, char *algorithm) {
     t_tlb *tlb = malloc(sizeof(t_tlb));
@@ -283,11 +207,11 @@ void update_tlb(t_tlb *tlb, int pid, int pagina, int marco) {
         // ... Implementar LRU
     }
     printf("OBTENER MARCO - Página: %d - Marco: %d\n", pagina, marco);
-}*/
+}
 
 // Simula la MMU para la traducción de direcciones
 uint32_t translate_address(uint32_t logical_address, uint32_t page_size) {
     uint32_t page_number = logical_address / page_size;
     uint32_t offset = logical_address % page_size;
     return (page_number * page_size) + offset; // Simulación simplificada
-}
+}*/

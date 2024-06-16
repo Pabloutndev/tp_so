@@ -226,3 +226,25 @@ void recibir_proceso(int socket_client, t_process* proceso)
 
     free(buffer);
 }
+
+
+void recibir_interrupcion(int skt_client, int* interrupt_pid)
+{
+ 	int size;
+    int desplazamiento = 0;
+    char* buffer = recibir_buffer(&size, skt_client);
+    
+    *interrupt_pid = leer_entero(buffer,&desplazamiento);
+    
+    free(buffer);
+}
+
+
+
+
+
+
+
+
+
+
